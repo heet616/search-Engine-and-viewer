@@ -18,4 +18,8 @@ public class TabWebpage extends Tab {
     HashMap<String, BooleanProperty> filtersOptions;
     StringProperty searchQuery;
     SearchResults results;
+
+//    public SearchResults getResults() {
+//
+//    }
 }

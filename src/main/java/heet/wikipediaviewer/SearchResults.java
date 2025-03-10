@@ -1,20 +1,36 @@
 package heet.wikipediaviewer;
 
+import javafx.beans.property.ListProperty;
+import javafx.beans.property.SimpleListProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.ObservableList;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class SearchResults {
     StringProperty title;
-    StringProperty author;
+    ListProperty<String> author;
     StringProperty summary;
 
     StringProperty pages;
+
+    StringProperty publishedDate;
 
     StringProperty url;
     List<String> tags;
 
     boolean isRead;
+
+    public SearchResults(final String title, final ObservableList<String> author, final String summary, final String pages, String publishedDate, final String url) {
+        this.title = new SimpleStringProperty(title);
+        this.author = new SimpleListProperty<String>(author);
+        this.summary = new SimpleStringProperty(summary);
+        this.pages = new SimpleStringProperty(title);
+        this.publishedDate = new SimpleStringProperty(publishedDate);
+        this.url = new SimpleStringProperty(url);
+    }
 
     public String getTitle() {
         return this.title.get();
@@ -28,15 +44,15 @@ public class SearchResults {
         this.title.set(title);
     }
 
-    public String getAuthor() {
+    public List<String> getAuthor() {
         return this.author.get();
     }
 
-    public StringProperty authorProperty() {
+    public List<String> authorProperty() {
         return this.author;
     }
 
-    public void setAuthor(final String author) {
+    public void setAuthor(final ObservableList<String> author) {
         this.author.set(author);
     }
 
@@ -93,3 +109,4 @@ public class SearchResults {
     }
 
 }
+
