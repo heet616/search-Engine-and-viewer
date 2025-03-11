@@ -1,168 +1,172 @@
 package heet.wikipediaviewer;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.event.Event;
-import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import javafx.util.Pair;
-
-import java.util.ArrayList;
-import java.util.Arrays;
+import javafx.scene.transform.Scale;
 
 public class MainView {
     private final ObservableList<String> recentPagesList;
     private final ObservableList<String> bookmarksList;
-    TabPane currentPagesTabs;
-
-    StringProperty searchboxproperty;
-
-    private final ObservableList<Tab> currentPagesList = FXCollections.observableArrayList();
-
+    private TabPane currentPagesTabs;
     private final HelloController controller;
 
-    public MainView(HelloController controller, final ObservableList<String> recentPagesList, ObservableList<String> bookmarksList) {
+    public MainView(final HelloController controller, final ObservableList<String> recentPagesList, final ObservableList<String> bookmarksList) {
         this.controller = controller;
-        this.recentPagesList = recentPagesList;
-        this.bookmarksList = bookmarksList;
-    }
-
-    private void addCurrentPagesTab(ListChangeListener.Change<? extends Tab> change) {
-        currentPagesTabs.getTabs().addAll(change.getAddedSubList());
+        this.recentPagesList = FXCollections.observableArrayList(recentPagesList);
+        this.bookmarksList = FXCollections.observableArrayList(bookmarksList);
     }
 
     public Scene initialize() {
-        BorderPane window = new BorderPane();
-        window.setTop(buildMenubar());
-        window.setLeft((buildFiltersLinksSection()));
-        window.setCenter(buildCurrentPagesTabs());
-        window.setRight(buildBookmarkRecentBuilder());
-        Scene scene = new Scene(window);
+        final BorderPane window = new BorderPane();
+        window.setTop(this.buildMenubar());
+        window.setLeft(this.buildFiltersLinksSection());
+        window.setCenter(this.buildCurrentPagesTabs());
+        window.setRight(this.buildBookmarkRecentBuilder());
+
+        final Scene scene = new Scene(window, 1000, 600);
+        scene.getStylesheets().add("style.css"); // Attach external CSS
         return scene;
     }
 
     private Node buildMenubar() {
-        MenuBar menu = new MenuBar();
-        Menu pagesMenu = new Menu("pages");
-        MenuItem addPage = new MenuItem("add Page");
+        final MenuBar menu = new MenuBar();
+        final Menu pagesMenu = new Menu("Pages");
+        final MenuItem addPage = new MenuItem("Add Page");
         addPage.setOnAction(event -> this.currentPagesTabs.getSelectionModel().selectLast());
         pagesMenu.getItems().add(addPage);
         menu.getMenus().add(pagesMenu);
-
         return menu;
     }
 
+    private Node buildFiltersLinksSection() {
+        final VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        container.getStyleClass().add("sidebar");
+        container.getChildren().add(this.createFilterOptions());
+        container.getChildren().add(this.getStyledLabel("Structure and Links"));
 
-    public Node buildFiltersLinksSection() {
-        VBox container = new VBox();
-        container.setSpacing(10); // Add spacing
-        container.getChildren().add(createFilterOptions());
-
-        container.getChildren().add(getLabel("Structure and Links"));
-
-        ListView<String> links = new ListView<>();
-        links.setItems(FXCollections.observableArrayList(
-                "arXiv Papers", "Semantic Scholar", "IEEE Xplore", "DOAJ", "Springer"
-        ));
+        final ListView<String> links = new ListView<>();
+        links.setItems(FXCollections.observableArrayList("arXiv Papers", "Semantic Scholar", "IEEE Xplore", "DOAJ", "Springer"));
         container.getChildren().add(links);
-
         return container;
     }
 
     private Node createFilterOptions() {
-        ArrayList<Pair<String, BooleanProperty>> filterOptions = new ArrayList<>();
-        TitledPane filtersPane = new TitledPane("Filters", new VBox(
-                createFilterSection("Documentation", filterOptions, new CheckBox("DevDocs"), new CheckBox("MDN Docs")),
-                createFilterSection("Research Papers", filterOptions, new CheckBox("arXiv"), new CheckBox("PubMed")),
-                this.createFilterSection("Datasets", filterOptions, new CheckBox("PapersWithCode"), new CheckBox("Hugging Face"))
-        ));
-        return filtersPane;
-    }
-
-    private TitledPane createFilterSection(String title, ArrayList<Pair<String, BooleanProperty>> filterOptions, CheckBox... options) {
-        for(CheckBox box: options){
-            filterOptions.add(new Pair<>(box.getText(), box.selectedProperty()));
-        }
-        VBox container = new VBox(options);
-        container.setSpacing(5);
-        return new TitledPane(title, container);
+        final VBox container = new VBox(5);
+        container.getChildren().add(new CheckBox("DevDocs"));
+        container.getChildren().add(new CheckBox("MDN Docs"));
+        container.getChildren().add(new CheckBox("arXiv"));
+        container.getChildren().add(new CheckBox("PubMed"));
+        container.getChildren().add(new CheckBox("PapersWithCode"));
+        container.getChildren().add(new CheckBox("Hugging Face"));
+        return new TitledPane("Filters", container);
     }
 
     private Node buildCurrentPagesTabs() {
-        VBox container = new VBox();
-
-        currentPagesTabs = new TabPane();
-        VBox.setVgrow(currentPagesTabs, Priority.ALWAYS);
-        container.getChildren().add(currentPagesTabs);
-        Tab add = new Tab("+");
-        add.setOnSelectionChanged(new EventHandler<Event>() {
-            @Override
-            public void handle(Event event) {
-                int i = currentPagesTabs.getTabs().size() - 1;
-                Tab s = createTab("new Tab");
-                currentPagesTabs.getTabs().add(currentPagesTabs.getTabs().size() - 1, s);
-                currentPagesTabs.getSelectionModel().select(i);
-            }
+        final VBox container = new VBox();
+        this.currentPagesTabs = new TabPane();
+        VBox.setVgrow(this.currentPagesTabs, Priority.ALWAYS);
+        container.getChildren().add(this.currentPagesTabs);
+        final Tab add = new Tab("+");
+        add.setOnSelectionChanged(event -> {
+            final Tab newTab = this.createTab("New Tab");
+            this.currentPagesTabs.getTabs().add(this.currentPagesTabs.getTabs().size() - 1, newTab);
+            this.currentPagesTabs.getSelectionModel().select(newTab);
         });
-        currentPagesTabs.getTabs().add(add);
-
+        this.currentPagesTabs.getTabs().add(add);
         return container;
     }
 
-    private Tab createTab(String head) {
-        TabWebpage t = new TabWebpage(head);
-        VBox container = new VBox();
-        Text results = new Text();
-        results.setText("Results to Search will be displayed here");
+    private Tab createTab(final String head) {
+        final VBox results = new VBox();
+        final TabWebpage tab = new TabWebpage(head, results);
+        final ScrollPane scrollPane = new ScrollPane();
+        final VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        scrollPane.setContent(container);
+        container.setFillWidth(true);
 
-        container.getChildren().add(createSearchBox());
+        final Text noSearchText = new Text("Results to Search will be displayed here");
+        noSearchText.setFont(Font.font(14));
+        container.getChildren().add(this.createSearchBox(tab));
+        results.getChildren().add(noSearchText);
         container.getChildren().add(results);
 
-        t.setContent(container);
-        return t;
+        tab.setContent(scrollPane);
+        return tab;
     }
 
-    Node createSearchBox(){
-        TextField searchBox = new TextField();
-        searchBox.setPromptText("Search Wikipedia");
-        searchboxproperty = searchBox.textProperty();
-        HBox searchContainer = new HBox();
+    private Node createSearchBox(final TabWebpage page) {
+        final TextField searchBox = new TextField();
+        searchBox.setPromptText("Enter Text...");
+        searchBox.setPrefHeight(35);
+        searchBox.setStyle("-fx-font-size: 14px;");
 
-        searchContainer.getChildren().add(searchBox);
-        HBox.setHgrow(searchBox, Priority.ALWAYS);
+        final Button searchButton = new Button("Search");
+        searchButton.setPrefHeight(35);
+        searchButton.setStyle("-fx-background-color: #0078D7; -fx-text-fill: white;");
 
-        Button searchButton = new Button("Search");
-        searchButton.setPrefWidth(40);
-        searchContainer.getChildren().add(searchButton);
-        TitledPane searchPane = new TitledPane("Search", searchContainer);
-        Accordion accontainer = new Accordion(searchPane);
-        accontainer.setExpandedPane(searchPane);
-        return accontainer;
+        searchButton.setOnAction(event -> {
+            page.results = this.controller.search(searchBox.getText());
+            page.setText(searchBox.getText());
+            this.updatePageResults(page);
+        });
+
+        final HBox searchContainer = new HBox(5, searchBox, searchButton);
+        searchContainer.setPadding(new Insets(5));
+        return searchContainer;
+    }
+
+    private void updatePageResults(final TabWebpage page) {
+        final Pane box = ((Pane) (page.container));
+        box.getChildren().clear();
+        for (final var r : page.results) {
+            box.getChildren().add(this.buildResultBox(r));
+        }
+    }
+
+    private Node buildResultBox(final PageElement r) {
+        final VBox box = new VBox(5);
+        box.setPadding(new Insets(10));
+        box.setStyle("-fx-background-color: #f4f4f4; -fx-border-color: #cccccc;");
+
+        if (r instanceof final TextElement t) {
+            box.getChildren().add(this.getStyledLabel(t.title()));
+            box.getChildren().add(this.getStyledLabel(t.summary()));
+            box.getChildren().add(this.getStyledLabel(t.publishedDate()));
+        }
+
+        final Scale scale = new Scale(1.0, 1.0);
+        box.getTransforms().add(scale);
+        box.setOnMouseEntered(event -> scale.setX(1.05));
+        box.setOnMouseExited(event -> scale.setX(1.0));
+        return box;
     }
 
     private Node buildBookmarkRecentBuilder() {
-        VBox container = new VBox();
-        container.getChildren().add(getLabel("Recent"));
-        //TODO: make String to Page
-        ListView<String> recentListView = new ListView<>();
-        recentListView.setItems(recentPagesList);
+        final VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        container.getChildren().add(this.getStyledLabel("Recent"));
+        final ListView<String> recentListView = new ListView<>(this.recentPagesList);
         container.getChildren().add(recentListView);
-        container.getChildren().add(getLabel("Bookmarks"));
-        ListView<String> bookmarksView = new ListView<>();
-        bookmarksView.setItems(bookmarksList);
+        container.getChildren().add(this.getStyledLabel("Bookmarks"));
+        final ListView<String> bookmarksView = new ListView<>(this.bookmarksList);
         container.getChildren().add(bookmarksView);
         return container;
     }
 
-    private Label getLabel(String text) {
-        return new Label(text);
+    private Label getStyledLabel(final String text) {
+        final Label label = new Label(text);
+        label.setFont(Font.font(16));
+        label.setTextFill(Color.DARKBLUE);
+        return label;
     }
 }
