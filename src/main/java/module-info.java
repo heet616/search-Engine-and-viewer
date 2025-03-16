@@ -9,6 +9,7 @@ module heet.wikipediaviewer {
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
+    requires com.fasterxml.jackson.databind;
 
     opens heet.wikipediaviewer to javafx.fxml;
     exports heet.wikipediaviewer;

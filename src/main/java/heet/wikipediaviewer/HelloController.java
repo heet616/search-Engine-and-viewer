@@ -1,139 +1,131 @@
 package heet.wikipediaviewer;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Map;
 
 public class HelloController {
 
     MainView view;
 
-    public void setView(MainView view) {
+    private static final Map<String, String> API_BASE_URLS = new HashMap<>();
+
+    static {
+        HelloController.API_BASE_URLS.put("arXiv", "https://export.arxiv.org/api/query");
+        HelloController.API_BASE_URLS.put("CORE", "https://api.core.ac.uk/v3/search");
+        HelloController.API_BASE_URLS.put("PLOS", "https://api.plos.org/search?q=");
+
+        // APIs requiring metadata parsing & external links
+        HelloController.API_BASE_URLS.put("Semantic Scholar", "https://api.semanticscholar.org/graph/v1/paper/search");
+        HelloController.API_BASE_URLS.put("PubMed", "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi");
+        HelloController.API_BASE_URLS.put("OpenAlex", "https://api.openalex.org/works");
+        HelloController.API_BASE_URLS.put("CrossRef", "https://api.crossref.org/works");
+
+        // Commercial research APIs (May require API key)
+        HelloController.API_BASE_URLS.put("IEEE", "https://api.ieee.org/search/articles");
+        HelloController.API_BASE_URLS.put("Springer", "https://api.springernature.com/meta/v2/json");
+        HelloController.API_BASE_URLS.put("Scopus", "https://api.elsevier.com/content/search/scopus");
+        HelloController.API_BASE_URLS.put("Web of Science", "https://wos-api.clarivate.com/api/wos");
+    }
+
+    HashMap<BooleanProperty, String> links = new HashMap<>();
+
+    public void setView(final MainView view) {
         this.view = view;
     }
 
+    private static String formatQuery(final String apiName, final String query) {
+        final String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        switch (apiName) {
+            case "arXiv":
+                return "?search_query=" + encodedQuery + "&start=0&max_results=10";
+            case "CORE":
+                return "?q=" + encodedQuery;
+            case "PLOS":
+                return "?q=" + encodedQuery;
+            case "Semantic Scholar":
+                return "?query=" + encodedQuery;
+            case "PubMed":
+                return "?db=pubmed&term=" + encodedQuery + "&retmode=json";
+            case "OpenAlex":
+                return "?filter=display_name.search:" + encodedQuery;
+            case "CrossRef":
+                return "?query=" + encodedQuery;
+            case "IEEE":
+                return "?querytext=" + encodedQuery;
+            case "Springer":
+                return "?q=" + encodedQuery + "&api_key=" + System.getenv("SPRINGER_API_KEY");
+            case "Scopus":
+                return "?query=" + encodedQuery + "&apiKey=" + System.getenv("SCOPUS_API_KEY");
+            case "Web of Science":
+                return "?query=" + encodedQuery + "&apiKey=" + System.getenv("WOS_API_KEY");
+            default:
+                return "?q=" + encodedQuery;
+        }
+    }
+
+    public static List<PageElement> parseQuery(final String apiName, final String fullUrl) {
+        final List<PageElement> results = new ArrayList<>();
+        try {
+            final URL url = new URL(fullUrl);
+            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+
+            final BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+            final StringBuilder response = new StringBuilder();
+            String line;
+            while (null != (line = br.readLine())) {
+                response.append(line);
+            }
+            br.close();
+
+            final String jsonResponse = response.toString();
+            System.out.println(jsonResponse);
+            results.addAll(Parser.parseApiResponse(apiName, jsonResponse));
+            System.out.println("size " + results.size());
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+        return results;
+    }
+
     public ObservableList<String> getRecentPages() {
-        final ObservableList<String> recents = FXCollections.observableArrayList();
-        return recents;
+        return FXCollections.observableArrayList();
     }
 
     public ObservableList<String> getBookmarkPages() {
-        final ObservableList<String> bookmarks = FXCollections.observableArrayList();
-        return bookmarks;
+        return FXCollections.observableArrayList();
     }
 
-    private void addPageTab(){
-    }
-
-
-    private static List<PageElement> parseQuery(final String url) {
-        final List<PageElement> results;
-        try {
-            final HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-            conn.setRequestMethod("GET");
-
-            final StringBuilder response = HelloController.getResponse(conn);
-
-            conn.getResponseCode();
-            conn.disconnect();
-
-            results = HelloController.parseXML(response);
-            HelloController.parseXML(response);
-
-        } catch (final MalformedURLException e) {
-            throw new RuntimeException(e);
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
-        }
-        return results;
-    }
-
-    private static StringBuilder getResponse(final HttpURLConnection conn) throws IOException {
-        final Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8);
-        final var response = new StringBuilder();
-        while (scanner.hasNext()) {
-            response.append(scanner.nextLine());
-        }
-        scanner.close();
-
-        System.out.println("response = " + response);
-        return response;
-    }
-
-    private static List<PageElement> parseXML(final StringBuilder response) throws IOException {
-        final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        DocumentBuilder db = null;
+    public List<PageElement> search(String text, final TabWebpage page) {
+//        url = "http://export.arxiv.org/api/query?search_query=all:" + text + "&max_results=10";
         final List<PageElement> results = new ArrayList<>();
-        try {
-            db = dbf.newDocumentBuilder();
-            final InputSource is = new InputSource();
-            is.setCharacterStream(new StringReader(response.toString()));
-            final Document doc = db.parse(is);
-            doc.getDocumentElement().normalize();
-
-            final NodeList entryNodes = doc.getElementsByTagName("entry");
-            for (int i = 0; i < entryNodes.getLength(); i++) {
-                final Element entry = (Element) entryNodes.item(i);
-
-                final String title = HelloController.getTextContent(entry, "title");
-                final String summary = HelloController.getTextContent(entry, "summary");
-                final String id = HelloController.getTextContent(entry, "id"); // The paper's URL
-                final String publishedDate = HelloController.getTextContent(entry, "published");
-                final List<String> authors = HelloController.parseAuthors(entry);
-
-                System.out.println("\n📄 Paper " + (i + 1));
-                System.out.println("🔹 Title: " + title);
-                System.out.println("🔹 Summary: " + summary);
-                System.out.println("🔹 Link: " + id);
-                System.out.println("🔹 Published: " + publishedDate);
-                System.out.println("🔹 Authors: ");
-                authors.stream().forEach((String authorName) -> System.out.println(authorName));
-                results.add(new TextElement(title, authors, summary, "0", publishedDate, id));
+        for (Map.Entry<String, BooleanProperty> entry : this.view.websiteCheckBoxes.entrySet()) {
+            final String name = entry.getKey();
+            if (entry.getValue().get()) {
+                final String apiUrl = HelloController.API_BASE_URLS.get(name);
+                if (null != apiUrl) {
+                    final String formattedQuery = apiUrl + HelloController.formatQuery(name, text);
+                    System.out.println(formattedQuery);
+                    results.addAll(HelloController.parseQuery(name, formattedQuery));
+                } else {
+                    System.err.println("API URL not found for: " + name);
+                }
             }
-
-        } catch (final ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        } catch (final SAXException e) {
-            throw new RuntimeException(e);
         }
+
         return results;
-    }
-
-    private static List<String> parseAuthors(final Element entry) {
-        final NodeList nodes = entry.getElementsByTagName("author");
-        final int l = nodes.getLength();
-        final ArrayList<String> authors = new ArrayList<>();
-        for (int i = 0; i < l; i++) {
-            final Element node = (Element) nodes.item(i);
-            authors.add(HelloController.getTextContent(node, "name"));
-        }
-        return authors;
-    }
-
-    private static String getTextContent(final Element element, final String tagName) {
-        final NodeList nodeList = element.getElementsByTagName(tagName);
-        return (0 < nodeList.getLength()) ? nodeList.item(0).getTextContent().trim() : "N/A";
-    }
-
-    public List<PageElement> search(final String text) {
-        final String url = "http://export.arxiv.org/api/query?search_query=all:" + text + "&max_results=5";
-        return HelloController.parseQuery(url);
     }
 }

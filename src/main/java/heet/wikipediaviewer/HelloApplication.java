@@ -1,17 +1,22 @@
 package heet.wikipediaviewer;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 
+/*
+WORKS:
+    arXiv
+    Semantic Scholar
+    OpenAlex
+    CrossRef
+ */
 public class HelloApplication extends Application {
     @Override
-    public void start(Stage stage) throws IOException {
-        HelloController controller = new HelloController();
-        MainView view = new MainView(controller, controller.getRecentPages(), controller.getBookmarkPages());
+    public void start(final Stage stage) throws IOException {
+        final HelloController controller = new HelloController();
+        final MainView view = new MainView(controller, controller.getRecentPages(), controller.getBookmarkPages());
         controller.setView(view);
         stage.setScene(view.initialize());
         stage.setHeight(600);
@@ -19,7 +24,7 @@ public class HelloApplication extends Application {
         stage.show();
     }
 
-    public static void main(String[] args) {
-        launch();
+    public static void main(final String[] args) {
+        Application.launch();
     }
 }

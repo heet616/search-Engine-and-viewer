@@ -1,4 +1,4 @@
 package heet.wikipediaviewer;
 
-sealed interface PageElement permits ImageElement, TextElement {
+sealed public interface PageElement permits ImageElement, TextElement {
 }
