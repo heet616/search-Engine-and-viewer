@@ -14,17 +14,18 @@ WORKS:
  */
 public class HelloApplication extends Application {
     @Override
-    public void start(final Stage stage) throws IOException {
-        final HelloController controller = new HelloController();
-        final MainView view = new MainView(controller, controller.getRecentPages(), controller.getBookmarkPages());
+    public void start(Stage stage) throws IOException {
+        HelloController controller = new HelloController();
+        MainView view = new MainView(controller, controller.getRecentPages(), controller.getBookmarkPages());
         controller.setView(view);
         stage.setScene(view.initialize());
+        stage.getScene().getStylesheets().add("heet/wikipediaviewer/style.css");
         stage.setHeight(600);
         stage.setWidth(1000);
         stage.show();
     }
 
-    public static void main(final String[] args) {
+    public static void main(String[] args) {
         Application.launch();
     }
 }

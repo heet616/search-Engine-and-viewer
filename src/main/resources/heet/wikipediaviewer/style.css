@@ -1,0 +1,108 @@
+/* General Styling */
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-background-color: #f4f4f4;
+}
+
+/* Menu Bar */
+.menu-bar {
+    -fx-background-color: #2d2d2d;
+    -fx-text-fill: white;
+}
+
+/* Sidebar */
+.sidebar {
+    -fx-background-color: #e1e1e1;
+    -fx-padding: 10;
+    -fx-spacing: 10;
+}
+
+/* Filters Section */
+.titled-pane > .title {
+    -fx-background-color: #3a3a3a;
+    -fx-text-fill: white;
+}
+
+/* ListView */
+.list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+    -fx-padding: 10;
+}
+
+/* Checkboxes */
+.check-box {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333333;
+}
+
+/* Buttons */
+.button {
+    -fx-background-color: #0078d7;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-padding: 10;
+    -fx-border-radius: 5;
+}
+
+.button:hover {
+    -fx-background-color: #005a8b;
+}
+
+/* Text Fields */
+.text-field {
+    -fx-font-size: 14px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+}
+
+/* VBox Container */
+.vbox {
+    -fx-spacing: 10;
+    -fx-padding: 10;
+}
+
+/* Tabs */
+.tab {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+}
+
+.tab:hover {
+    -fx-background-color: #f0f0f0;
+}
+
+.tab > .tab-label {
+    -fx-font-size: 16px;
+    -fx-text-fill: #0078d7;
+}
+
+/* ScrollPane */
+.scroll-pane {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+}
+
+/* Result Boxes */
+.vbox > .label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333333;
+}
+
+.vbox > .label:hover {
+    -fx-text-fill: #0078d7;
+}
+
+.vbox {
+    -fx-background-color: #f4f4f4;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5;
+    -fx-padding: 10;
+}
+
+.vbox:hover {
+    -fx-background-color: #e6f2ff;
+}

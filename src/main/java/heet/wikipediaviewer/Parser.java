@@ -9,6 +9,9 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,247 +21,305 @@ public enum Parser {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static List<PageElement> parseApiResponse(final String apiName, final String jsonResponse) {
+    public static List<PageElement> parseApiResponse(String apiName, String jsonResponse) {
         return switch (apiName) {
-            case "arXiv" -> Parser.parseArxiv(jsonResponse);
-            case "CORE" -> Parser.parseCore(jsonResponse);
-            case "PLOS" -> Parser.parsePlos(jsonResponse);
-            case "Semantic Scholar" -> Parser.parseSemanticScholar(jsonResponse);
-            case "PubMed" -> Parser.parsePubMed(jsonResponse);
-            case "OpenAlex" -> Parser.parseOpenAlex(jsonResponse);
-            case "CrossRef" -> Parser.parseCrossRef(jsonResponse);
-            case "IEEE" -> Parser.parseIEEE(jsonResponse);
-            case "Springer" -> Parser.parseSpringer(jsonResponse);
-            case "Scopus" -> Parser.parseScopus(jsonResponse);
-            case "Web of Science" -> Parser.parseWebOfScience(jsonResponse);
+            case "arXiv" -> parseArxiv(jsonResponse);
+            case "CORE" -> parseCore(jsonResponse);
+            case "PLOS" -> parsePlos(jsonResponse);
+            case "Semantic Scholar" -> parseSemanticScholar(jsonResponse);
+            case "PubMed" -> parsePubMed(jsonResponse);
+            case "OpenAlex" -> parseOpenAlex(jsonResponse);
+            case "CrossRef" -> parseCrossRef(jsonResponse);
+            case "IEEE" -> parseIEEE(jsonResponse);
+            case "Springer" -> parseSpringer(jsonResponse);
+            case "Scopus" -> parseScopus(jsonResponse);
+            case "Web of Science" -> parseWebOfScience(jsonResponse);
             default -> new ArrayList<>();
         };
     }
 
-    private static List<PageElement> parseArxiv(final String xmlResponse) {
-        final List<PageElement> results = new ArrayList<>();
+    private static List<PageElement> parseArxiv(String xmlResponse) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            final DocumentBuilder builder = factory.newDocumentBuilder();
-            final Document doc = builder.parse(new ByteArrayInputStream(xmlResponse.getBytes(StandardCharsets.UTF_8)));
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new ByteArrayInputStream(xmlResponse.getBytes(StandardCharsets.UTF_8)));
 
-            final NodeList entries = doc.getElementsByTagName("entry");
+            NodeList entries = doc.getElementsByTagName("entry");
             System.out.println("asd" + entries.getLength());
             for (int i = 0; i < entries.getLength(); i++) {
-                final Element entry = (Element) entries.item(i);
+                Element entry = (Element) entries.item(i);
 
                 // Extract Title
-                final String title = entry.getElementsByTagName("title").item(0).getTextContent().trim();
+                String title = entry.getElementsByTagName("title").item(0).getTextContent().trim();
 
                 // Extract Authors (Multiple <author><name> nodes)
-                final NodeList authorNodes = entry.getElementsByTagName("author");
-                final List<String> authors = new ArrayList<>();
+                NodeList authorNodes = entry.getElementsByTagName("author");
+                List<String> authors = new ArrayList<>();
                 for (int j = 0; j < authorNodes.getLength(); j++) {
-                    final Element authorElement = (Element) authorNodes.item(j);
-                    final String authorName = authorElement.getElementsByTagName("name").item(0).getTextContent().trim();
+                    Element authorElement = (Element) authorNodes.item(j);
+                    String authorName = authorElement.getElementsByTagName("name").item(0).getTextContent().trim();
                     authors.add(authorName);
                 }
 
                 // Extract Summary
-                final String summary = entry.getElementsByTagName("summary").item(0).getTextContent().trim();
+                String summary = entry.getElementsByTagName("summary").item(0).getTextContent().trim();
 
                 // Extract Published Date
-                final String publishedDate = entry.getElementsByTagName("published").item(0).getTextContent().trim();
+                String publishedDate = entry.getElementsByTagName("published").item(0).getTextContent().trim();
 
                 // Extract ID (which is the full paper link)
-                final String id = entry.getElementsByTagName("id").item(0).getTextContent().trim();
+                String id = entry.getElementsByTagName("id").item(0).getTextContent().trim();
 
                 // Extract arXiv Number (e.g., "2403.12345v1" from id)
-                final String number = id.substring(id.lastIndexOf('/') + 1);
+                String number = id.substring(id.lastIndexOf('/') + 1);
 
                 // Create a TextElement with full details
-                final var x = new TextElement(title, authors, summary, number, publishedDate, id, false);
+                var x = new TextElement(title, authors, summary, number, publishedDate, id, false);
                 results.add(new TextElement(title, authors, summary, number, publishedDate, id, false));
                 System.out.println(x);
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
 
-    private static List<PageElement> parseCore(final String jsonResponse) {
-        final List<PageElement> results = new ArrayList<>();
+    private static List<PageElement> parseCore(String jsonResponse) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path("results");
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path("results");
 
-            for (final JsonNode article : articles) {
-                final String title = article.path("title").asText();
-                final String id = article.path("id").asText();
-                final String summary = article.path("abstract").asText(null);
-                final String publishedDate = article.path("publishedDate").asText(null);
-                final List<String> authors = Parser.extractAuthors(article, "authors");
+            for (JsonNode article : articles) {
+                String title = article.path("title").asText();
+                String id = article.path("id").asText();
+                String summary = article.path("abstract").asText(null);
+                String publishedDate = article.path("publishedDate").asText(null);
+                List<String> authors = extractAuthors(article, "authors");
 
                 results.add(new TextElement(title, authors, summary, null, publishedDate, id, false));
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
-    private static List<PageElement> parsePlos(final String jsonResponse) {
-        final List<PageElement> results = new ArrayList<>();
+    private static List<PageElement> parsePlos(String jsonResponse) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path("response").path("docs");
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path("response").path("docs");
 
-            for (final JsonNode article : articles) {
-                final String title = article.path("title_display").asText();
-                final String id = article.path("id").asText();
-                final String summary = article.path("abstract").asText(null);
-                final String publishedDate = article.path("publication_date").asText(null);
-                final List<String> authors = Parser.extractAuthors(article, "author_display");
+            for (JsonNode article : articles) {
+                String title = article.path("title_display").asText();
+                String id = article.path("id").asText();
+                String summary = article.path("abstract").asText(null);
+                String publishedDate = article.path("publication_date").asText(null);
+                List<String> authors = extractAuthors(article, "author_display");
 
                 results.add(new TextElement(title, authors, summary, null, publishedDate, id, false));
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
     private static List<PageElement> parseSemanticScholar(final String jsonResponse) {
-        final List<PageElement> results = new ArrayList<>();
-        try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path("data");
+        List<PageElement> results = new ArrayList<>();
+        final List<String> ids = new ArrayList<>();
 
-            for (final JsonNode article : articles) {
-                final String title = article.path("title").asText();
-                final String id = article.path("paperId").asText();
-                final String summary = article.path("abstract").asText(null);
-                final String publishedDate = article.path("year").asText(null);
-                final List<String> authors = Parser.extractAuthors(article, "authors", "name");
+        try {
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path("data");
+
+            for (JsonNode article : articles) {
+                ids.add(article.path("paperId").asText());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (ids.isEmpty()) {
+            return results;
+        }
+
+        try {
+            // API Call for Batch Paper Data
+            final String fullUrl = "https://api.semanticscholar.org/graph/v1/paper/batch?fields=title,authors,abstract,year,url,openAccessPdf,externalIds";
+            final ObjectMapper mapper = new ObjectMapper();
+            final String jsonInputString = mapper.writeValueAsString(ids);
+
+            System.out.println("Request: " + jsonInputString);
+
+            URL url = new URL(fullUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+
+            try (final OutputStream os = conn.getOutputStream()) {
+                final byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            final JsonNode root = mapper.readTree(conn.getInputStream());
+            return root.isArray() ? Parser.parseSemPostResponse(root) : List.of();
+        } catch (final Exception ex) {
+            ex.printStackTrace();
+            return List.of();
+        }
+    }
+
+    private static List<PageElement> parseSemPostResponse(final JsonNode root) {
+        final List<PageElement> results = new ArrayList<>();
+
+        for (final JsonNode paper : root) {  // Iterate over each JSON object
+            final String id = paper.path("paperId").asText();
+            final String title = paper.path("title").asText();
+            final String summary = paper.path("abstract").asText(null);
+            final String publishedDate = paper.path("year").asText(null);
+            final String link = paper.path("url").asText(null);
+
+            // Get Open Access PDF link
+            String downloadLink = null;
+            if (paper.has("openAccessPdf")) {
+                downloadLink = paper.path("openAccessPdf").path("url").asText(null);
+            }
+
+            // If no direct PDF, check DOI
+            if (null == downloadLink && paper.has("externalIds")) {
+                final String doi = paper.path("externalIds").path("DOI").asText(null);
+                if (null != doi) {
+                    downloadLink = "https://doi.org/" + doi;
+                }
+            }
+
+            final List<String> authors = extractAuthors(paper, "authors", "name");
+
+            results.add(new TextElement(title, authors, summary, id, publishedDate, id, false));
+        }
+
+        return results;
+    }
+
+
+    private static List<PageElement> parsePubMed(String jsonResponse) {
+        List<PageElement> results = new ArrayList<>();
+        try {
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path("records");
+
+            for (JsonNode article : articles) {
+                String title = article.path("title").asText();
+                String id = article.path("uid").asText();
+                String summary = article.path("abstract").asText(null);
+                String publishedDate = article.path("pubdate").asText(null);
+                List<String> authors = extractAuthors(article, "authors", "name");
 
                 results.add(new TextElement(title, authors, summary, null, publishedDate, id, false));
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
-    private static List<PageElement> parsePubMed(final String jsonResponse) {
-        final List<PageElement> results = new ArrayList<>();
+    private static List<PageElement> parseOpenAlex(String jsonResponse) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path("records");
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path("results");
 
-            for (final JsonNode article : articles) {
-                final String title = article.path("title").asText();
-                final String id = article.path("uid").asText();
-                final String summary = article.path("abstract").asText(null);
-                final String publishedDate = article.path("pubdate").asText(null);
-                final List<String> authors = Parser.extractAuthors(article, "authors", "name");
+            for (JsonNode article : articles) {
+                String title = article.path("display_name").asText();
+                String id = article.path("id").asText();
+                String summary = article.path("abstract").asText(null);
+                String publishedDate = article.path("publication_date").asText(null);
+                List<String> authors = extractAuthors(article, "authors", "display_name");
 
                 results.add(new TextElement(title, authors, summary, null, publishedDate, id, false));
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
-    private static List<PageElement> parseOpenAlex(final String jsonResponse) {
-        final List<PageElement> results = new ArrayList<>();
+    private static List<PageElement> parseCrossRef(String jsonResponse) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path("results");
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path("message").path("items");
 
-            for (final JsonNode article : articles) {
-                final String title = article.path("display_name").asText();
-                final String id = article.path("id").asText();
-                final String summary = article.path("abstract").asText(null);
-                final String publishedDate = article.path("publication_date").asText(null);
-                final List<String> authors = Parser.extractAuthors(article, "authors", "display_name");
-
-                results.add(new TextElement(title, authors, summary, null, publishedDate, id, false));
-            }
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
-        return results;
-    }
-
-    private static List<PageElement> parseCrossRef(final String jsonResponse) {
-        final List<PageElement> results = new ArrayList<>();
-        try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path("message").path("items");
-
-            for (final JsonNode article : articles) {
-                final String title = article.path("title").get(0).asText();
-                final String id = article.path("DOI").asText();
-                final String publishedDate = article.path("published-print").path("date-parts").toString();
-                final List<String> authors = Parser.extractAuthors(article, "author", "family");
+            for (JsonNode article : articles) {
+                String title = article.path("title").get(0).asText();
+                String id = article.path("DOI").asText();
+                String publishedDate = article.path("published-print").path("date-parts").toString();
+                List<String> authors = extractAuthors(article, "author", "family");
 
                 results.add(new TextElement(title, authors, null, null, publishedDate, id, false));
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
-    private static List<PageElement> parseIEEE(final String jsonResponse) {
-        return Parser.parseGenericAPI(jsonResponse, "articles");
+    private static List<PageElement> parseIEEE(String jsonResponse) {
+        return parseGenericAPI(jsonResponse, "articles");
     }
 
-    private static List<PageElement> parseSpringer(final String jsonResponse) {
-        return Parser.parseGenericAPI(jsonResponse, "records");
+    private static List<PageElement> parseSpringer(String jsonResponse) {
+        return parseGenericAPI(jsonResponse, "records");
     }
 
-    private static List<PageElement> parseScopus(final String jsonResponse) {
-        return Parser.parseGenericAPI(jsonResponse, "search-results.entry");
+    private static List<PageElement> parseScopus(String jsonResponse) {
+        return parseGenericAPI(jsonResponse, "search-results.entry");
     }
 
-    private static List<PageElement> parseWebOfScience(final String jsonResponse) {
-        return Parser.parseGenericAPI(jsonResponse, "data");
+    private static List<PageElement> parseWebOfScience(String jsonResponse) {
+        return parseGenericAPI(jsonResponse, "data");
     }
 
-    private static List<PageElement> parseGenericAPI(final String jsonResponse, final String key) {
-        final List<PageElement> results = new ArrayList<>();
+    private static List<PageElement> parseGenericAPI(String jsonResponse, String key) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final JsonNode root = Parser.mapper.readTree(jsonResponse);
-            final JsonNode articles = root.path(key);
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode articles = root.path(key);
 
-            for (final JsonNode article : articles) {
-                final String title = article.path("title").asText();
-                final String id = article.path("id").asText();
-                final String summary = article.path("abstract").asText(null);
-                final String publishedDate = article.path("publication_date").asText(null);
-                final List<String> authors = Parser.extractAuthors(article, "authors", "name");
+            for (JsonNode article : articles) {
+                String title = article.path("title").asText();
+                String id = article.path("id").asText();
+                String summary = article.path("abstract").asText(null);
+                String publishedDate = article.path("publication_date").asText(null);
+                List<String> authors = extractAuthors(article, "authors", "name");
 
                 results.add(new TextElement(title, authors, summary, null, publishedDate, id, false));
             }
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
     }
 
-    private static List<String> extractAuthors(final JsonNode node, final String key) {
-        final List<String> authors = new ArrayList<>();
+    private static List<String> extractAuthors(JsonNode node, String key) {
+        List<String> authors = new ArrayList<>();
         if (node.has(key) && node.get(key).isArray()) {
-            for (final JsonNode author : node.get(key)) {
+            for (JsonNode author : node.get(key)) {
                 authors.add(author.asText());
             }
         }
         return authors;
     }
 
-    private static List<String> extractAuthors(final JsonNode node, final String key, final String subKey) {
-        final List<String> authors = new ArrayList<>();
+    private static List<String> extractAuthors(JsonNode node, String key, String subKey) {
+        List<String> authors = new ArrayList<>();
         if (node.has(key) && node.get(key).isArray()) {
-            for (final JsonNode author : node.get(key)) {
+            for (JsonNode author : node.get(key)) {
                 authors.add(author.path(subKey).asText());
             }
         }
