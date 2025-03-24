@@ -12,20 +12,20 @@ WORKS:
     OpenAlex
     CrossRef
  */
-public class HelloApplication extends Application {
+public class MainApplication extends Application {
+    public static void main(final String[] args) {
+        Application.launch();
+    }
+
     @Override
-    public void start(Stage stage) throws IOException {
-        HelloController controller = new HelloController();
-        MainView view = new MainView(controller, controller.getRecentPages(), controller.getBookmarkPages());
+    public void start(final Stage stage) throws IOException {
+        final MainController controller = new MainController();
+        final MainView view = new MainView(controller, controller.getRecentPages(), controller.getBookmarkPages());
         controller.setView(view);
         stage.setScene(view.initialize());
         stage.getScene().getStylesheets().add("heet/wikipediaviewer/style.css");
         stage.setHeight(600);
         stage.setWidth(1000);
         stage.show();
-    }
-
-    public static void main(String[] args) {
-        Application.launch();
     }
 }

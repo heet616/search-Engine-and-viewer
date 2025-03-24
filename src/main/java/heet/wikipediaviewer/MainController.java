@@ -15,38 +15,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HelloController {
-
-    MainView view;
+public class MainController {
 
     private static final Map<String, String> API_BASE_URLS = new HashMap<>();
 
     static {
-        HelloController.API_BASE_URLS.put("arXiv", "https://export.arxiv.org/api/query");
-        HelloController.API_BASE_URLS.put("CORE", "https://api.core.ac.uk/v3/search");
-        HelloController.API_BASE_URLS.put("PLOS", "https://api.plos.org/search?q=");
+        API_BASE_URLS.put("arXiv", "https://export.arxiv.org/api/query");
+        API_BASE_URLS.put("CORE", "https://api.core.ac.uk/v3/search");
+        API_BASE_URLS.put("PLOS", "https://api.plos.org/search?q=");
 
         // APIs requiring metadata parsing & external links
-        HelloController.API_BASE_URLS.put("Semantic Scholar", "https://api.semanticscholar.org/graph/v1/paper/search");
-        HelloController.API_BASE_URLS.put("PubMed", "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi");
-        HelloController.API_BASE_URLS.put("OpenAlex", "https://api.openalex.org/works");
-        HelloController.API_BASE_URLS.put("CrossRef", "https://api.crossref.org/works");
+        API_BASE_URLS.put("Semantic Scholar", "https://api.semanticscholar.org/graph/v1/paper/search");
+        API_BASE_URLS.put("PubMed", "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi");
+        API_BASE_URLS.put("OpenAlex", "https://api.openalex.org/works");
+        API_BASE_URLS.put("CrossRef", "https://api.crossref.org/works");
 
         // Commercial research APIs (May require API key)
-        HelloController.API_BASE_URLS.put("IEEE", "https://api.ieee.org/search/articles");
-        HelloController.API_BASE_URLS.put("Springer", "https://api.springernature.com/meta/v2/json");
-        HelloController.API_BASE_URLS.put("Scopus", "https://api.elsevier.com/content/search/scopus");
-        HelloController.API_BASE_URLS.put("Web of Science", "https://wos-api.clarivate.com/api/wos");
+        API_BASE_URLS.put("IEEE", "https://api.ieee.org/search/articles");
+        API_BASE_URLS.put("Springer", "https://api.springernature.com/meta/v2/json");
+        API_BASE_URLS.put("Scopus", "https://api.elsevier.com/content/search/scopus");
+        API_BASE_URLS.put("Web of Science", "https://wos-api.clarivate.com/api/wos");
     }
 
+    MainView view;
     HashMap<BooleanProperty, String> links = new HashMap<>();
 
-    public void setView(final MainView view) {
-        this.view = view;
-    }
-
-    private static String formatQuery(final String apiName, final String query) {
-        final String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+    private static String formatQuery(String apiName, String query) {
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
         switch (apiName) {
             case "arXiv":
                 return "?search_query=" + encodedQuery + "&start=0&max_results=10";
@@ -75,30 +70,34 @@ public class HelloController {
         }
     }
 
-    public static List<PageElement> parseQuery(final String apiName, final String fullUrl) {
-        final List<PageElement> results = new ArrayList<>();
+    public static List<PageElement> parseQuery(String apiName, String fullUrl) {
+        List<PageElement> results = new ArrayList<>();
         try {
-            final URL url = new URL(fullUrl);
-            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            URL url = new URL(fullUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
 
-            final BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-            final StringBuilder response = new StringBuilder();
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+            StringBuilder response = new StringBuilder();
             String line;
             while (null != (line = br.readLine())) {
                 response.append(line);
             }
             br.close();
 
-            final String jsonResponse = response.toString();
-            System.out.println(jsonResponse);
+            String jsonResponse = response.toString();
+//            System.out.println(jsonResponse);
             results.addAll(Parser.parseApiResponse(apiName, jsonResponse));
             System.out.println("size " + results.size());
-        } catch (final Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return results;
+    }
+
+    public void setView(MainView view) {
+        this.view = view;
     }
 
     public ObservableList<String> getRecentPages() {
@@ -109,23 +108,37 @@ public class HelloController {
         return FXCollections.observableArrayList();
     }
 
-    public List<PageElement> search(String text, final TabWebpage page) {
+    public List<PageElement> search(final String text, TabWebpage page) {
 //        url = "http://export.arxiv.org/api/query?search_query=all:" + text + "&max_results=10";
-        final List<PageElement> results = new ArrayList<>();
-        for (Map.Entry<String, BooleanProperty> entry : this.view.websiteCheckBoxes.entrySet()) {
-            final String name = entry.getKey();
-            if (entry.getValue().get()) {
-                final String apiUrl = HelloController.API_BASE_URLS.get(name);
+        List<PageElement> results = new ArrayList<>();
+        final List<String> websites = new ArrayList<>();
+        view.websiteCheckBoxes.forEach(((s, booleanProperty) -> {
+            if (booleanProperty.get())
+                websites.add(s);
+        }));
+        System.out.println("cache size: " + ResultsCache.results.size());
+        for (final SearchSpecification s : ResultsCache.results.keySet()) {
+            System.out.println(s.toString() + " " + ResultsCache.results.get(s));
+        }
+        if (ResultsCache.getIfPresent(text, websites) instanceof final List<PageElement> list) {
+            System.out.println("YESSSS");
+            return list;
+        }
+
+        for (final String name : websites) {
+            final BooleanProperty value = view.websiteCheckBoxes.get(name);
+            if (value.get()) {
+                String apiUrl = API_BASE_URLS.get(name);
                 if (null != apiUrl) {
-                    final String formattedQuery = apiUrl + HelloController.formatQuery(name, text);
+                    String formattedQuery = apiUrl + formatQuery(name, text);
                     System.out.println(formattedQuery);
-                    results.addAll(HelloController.parseQuery(name, formattedQuery));
+                    results.addAll(parseQuery(name, formattedQuery));
                 } else {
                     System.err.println("API URL not found for: " + name);
                 }
             }
         }
-
+        ResultsCache.add(text, websites, results);
         return results;
     }
 }
