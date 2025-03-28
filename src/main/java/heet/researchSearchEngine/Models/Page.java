@@ -1,4 +1,4 @@
-package heet.wikipediaviewer;
+package heet.researchSearchEngine.Models;
 
 import java.net.URI;
 import java.util.List;

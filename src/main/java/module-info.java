@@ -1,4 +1,4 @@
-module heet.wikipediaviewer {
+module heet.researchSearchEngine {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.web;
@@ -11,6 +11,16 @@ module heet.wikipediaviewer {
     requires eu.hansolo.tilesfx;
     requires com.fasterxml.jackson.databind;
 
-    opens heet.wikipediaviewer to javafx.fxml;
-    exports heet.wikipediaviewer;
+    opens heet.researchSearchEngine to javafx.fxml;
+    exports heet.researchSearchEngine;
+    exports heet.researchSearchEngine.Models;
+    opens heet.researchSearchEngine.Models to javafx.fxml;
+    exports heet.researchSearchEngine.Repository;
+    opens heet.researchSearchEngine.Repository to javafx.fxml;
+    exports heet.researchSearchEngine.Utils;
+    opens heet.researchSearchEngine.Utils to javafx.fxml;
+    exports heet.researchSearchEngine.Controller;
+    opens heet.researchSearchEngine.Controller to javafx.fxml;
+    exports heet.researchSearchEngine.View;
+    opens heet.researchSearchEngine.View to javafx.fxml;
 }

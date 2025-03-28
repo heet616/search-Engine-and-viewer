@@ -25,8 +25,8 @@ tasks.withType(JavaCompile) {
 }
 
 application {
-    mainModule = 'heet.wikipediaviewer'
-    mainClass = 'heet.wikipediaviewer.HelloApplication'
+    mainModule = 'heet.researchSearchEngine'
+    mainClass = 'heet.researchSearchEngine.MainApplication'
 }
 
 javafx {
